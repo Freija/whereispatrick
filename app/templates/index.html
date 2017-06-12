@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      #map {
+        height: 400px;
+        width: 100%;
+       }
+    </style>
+  </head>
+  <body>
+    <h3>Where is Patrick?</h3>
+    <div id="map"></div>
+    <script  type="text/javascript">
+      function initMap() {
+        var markers = {{locations|safe}}
+        var centerpoint = new google.maps.LatLng(parseFloat(markers[markers.length -1][0]), parseFloat(markers[markers.length -1][1]));
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 7,
+          center: centerpoint,
+          mapTypeId: google.maps.MapTypeId.ROADMAP
+        });
+        var infowindow = new google.maps.InfoWindow();
+        var marker, i;
+        for( i = 0; i < markers.length; i++ ) {
+          var position = new google.maps.LatLng(parseFloat(markers[i][0]), parseFloat(markers[i][1]));
+          marker = new google.maps.Marker({
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 3,
+            },
+            position: position,
+            map: map
+          });
+          //console.log(position);
+          google.maps.event.addListener(marker, 'click', (function(marker, i) {
+          return function() {
+            infowindow.setContent("Date: " + markers[i][3]+ " \nAltitude: " +  markers[i][2] + "m" );
+            infowindow.open(map, marker);
+          }
+          })(marker, i));
+      };
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ ACCESS_KEY }}&callback=initMap">
+    </script>
+  </body>
+</html>
