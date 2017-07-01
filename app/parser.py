@@ -23,10 +23,11 @@ def parse_message(message):
     Arguments:
         message  -- input message that needs to be checked.
     '''
+    # Lat- 1deg40'18" Lon-78deg39'01" Alt+2773 m (0s ago) 07-Jun-2017 22:50:34 UTC http://map.iridium.com/m?lat=-01.671866&lon=-078.650466
     result = []
     message_regex = re.compile(r'^'
-                               r'Lat([0-9\s\-]+)deg(\d*)\'(\d*)\"\s'
-                               r'Lon([0-9\s\-]+)deg(\d*)\'(\d*)\"\s'
+                               r'Lat([0-9\s\-]+)deg(\d+)\'(\d+)\"\s'
+                               r'Lon([0-9\s\-]+)deg(\d+)\'(\d+)\"\s'
                                r'Alt[+-](\d+)\s\w{1,3}\s'
                                r'\(.+?\sago\)\s'
                                r'(\d{2}-[A-Za-z]{3}-\d{4}\s'
