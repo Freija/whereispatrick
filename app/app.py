@@ -1,20 +1,28 @@
 from flask import Flask, current_app, jsonify, request, render_template, redirect
 from flask_restful import Resource, Api, abort, reqparse
 import flask
-import settings
 import parser
 import csv
 import datetime
+import json
 
 app = Flask(__name__)
 api = Api(app)
+
+
+def load_config(filename):
+    ''' Return a config dict from given JSON filename
+    '''
+    with open(filename, 'r') as config:
+        return json.load(config)
+
 
 @app.route('/')
 def index():
     locations = parser.get_all_coordinates()
     return flask.render_template(
                                 "index.html",
-                                ACCESS_KEY = settings.GOOGLE_MAP_KEY,
+                                ACCESS_KEY = load_config('/config/config.json')['GOOGLE_MAP_KEY'],
                                 locations = locations
                                 )
 
