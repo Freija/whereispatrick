@@ -1,7 +1,11 @@
 FROM python:3.4-alpine
 EXPOSE 5000
-COPY . /app
+
+COPY requirements.txt /
+RUN pip install -r /requirements.txt
+
 WORKDIR /app
-RUN pip install -r requirements.txt
+COPY app.py parser.py ./
+COPY templates ./templates
 USER nobody
 ENTRYPOINT ["python", "app.py"]

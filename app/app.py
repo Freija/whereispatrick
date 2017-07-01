@@ -37,7 +37,7 @@ class coordinateAPI(Resource):
         parsed = parser.parse_message(message)
         if parsed != 0:
             # Add the coordinates to our local coordinates file
-            with open(r'./app/coordinates.csv', 'a') as f:
+            with open(r'/data/coordinates.csv', 'a') as f:
                 writer = csv.writer(f)
                 writer.writerow(parsed)
             return 'OK'

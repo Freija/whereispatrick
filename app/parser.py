@@ -3,6 +3,11 @@ import re
 import csv
 
 
+def nospace(input_string):
+    ''' return the given string with all spaces removed '''
+    return input_string.replace(" ", "")
+
+
 def deg_min_sec_todeg(deg, min, sec):
     ''' This function will return degrees from degrees, minutes, seconds.
     Arguments:
@@ -10,7 +15,7 @@ def deg_min_sec_todeg(deg, min, sec):
     '''
     # Keep track if we have negative degrees
     is_neg = deg.startswith('-')
-    degrees = abs(int(deg)) + int(min)/60.0 + int(sec)/3600.0
+    degrees = abs(int(nospace(deg))) + int(min)/60.0 + int(sec)/3600.0
     if is_neg:
         return -1 * degrees
     else:
@@ -23,7 +28,6 @@ def parse_message(message):
     Arguments:
         message  -- input message that needs to be checked.
     '''
-    # Lat- 1deg40'18" Lon-78deg39'01" Alt+2773 m (0s ago) 07-Jun-2017 22:50:34 UTC http://map.iridium.com/m?lat=-01.671866&lon=-078.650466
     result = []
     message_regex = re.compile(r'^'
                                r'Lat([0-9\s\-]+)deg(\d+)\'(\d+)\"\s'
