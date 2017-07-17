@@ -67,6 +67,19 @@ def get_all_coordinates():
     return result
 
 
+def get_all_images():
+    ''' This function will retrieve the image details from the local csv file.
+    Arguments:
+        None
+    '''
+    result = []
+    with open('/data/images.csv', 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            result.append(row)
+    return result
+
+
 def make_feature(coordinate, order):
     ''' This function will assemble and return a json GEO point, ready to be
     used by Mapbox.

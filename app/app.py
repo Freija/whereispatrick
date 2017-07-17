@@ -18,10 +18,12 @@ def load_config(filename):
 @app.route('/')
 def index():
     locations = parser.get_all_coordinates()
+    images = parser.get_all_images()
     return flask.render_template(
                                 "index.html",
                                 ACCESS_KEY = load_config('/config/config.json')['GOOGLE_MAP_KEY'],
-                                locations = locations
+                                locations = locations,
+                                images = images
                                 )
 
 
