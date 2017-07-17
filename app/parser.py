@@ -32,7 +32,7 @@ def parse_message(message):
                                r'Lat([0-9\s\-]+)deg(\d+)\'(\d+)\"\s'
                                r'Lon([0-9\s\-]+)deg(\d+)\'(\d+)\"\s'
                                r'Alt[+-](\d+)\s\w{1,3}\s'
-                               r'\(.+?\sago\)\s'
+                               r'\(.+?\)\s'
                                r'(\d{2}-[A-Za-z]{3}-\d{4}\s'
                                r'\d{2}:\d{2}:\d{2})\sUTC\s'
                                r'.+'
