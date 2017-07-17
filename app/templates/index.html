@@ -3,7 +3,7 @@
   <head>
     <style>
       #map {
-        height: 400px;
+        height: 800px;
         width: 100%;
        }
     </style>
@@ -24,14 +24,26 @@
         var marker, i;
         for( i = 0; i < markers.length; i++ ) {
           var position = new google.maps.LatLng(parseFloat(markers[i][0]), parseFloat(markers[i][1]));
-          marker = new google.maps.Marker({
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 3,
-            },
-            position: position,
-            map: map
-          });
+          if( i< markers.length-1 ) {
+            marker = new google.maps.Marker({
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                strokeWeight: 2,
+                fillOpacity: 1,
+                strokeColor: '#FF0000',
+                fillColor: '#FFFFFF',
+                scale: 5,
+              },
+              position: position,
+              map: map
+            });
+          }
+          else {
+            marker = new google.maps.Marker({
+              position: position,
+              map: map
+            });
+          }
           //console.log(position);
           google.maps.event.addListener(marker, 'click', (function(marker, i) {
           return function() {

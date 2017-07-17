@@ -2,7 +2,6 @@ from datetime import datetime
 import re
 import csv
 
-
 def nospace(input_string):
     ''' return the given string with all spaces removed '''
     return input_string.replace(" ", "")

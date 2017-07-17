@@ -1,13 +1,11 @@
-from flask import Flask, current_app, jsonify, request, render_template, redirect
-from flask_restful import Resource, Api, abort, reqparse
+from flask import Flask, request, render_template
 import flask
 import parser
 import csv
-import datetime
 import json
+from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
-api = Api(app)
 
 
 def load_config(filename):
@@ -26,25 +24,21 @@ def index():
                                 locations = locations
                                 )
 
-class coordinateAPI(Resource):
-    def __init__(self):
-        self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('message',
-                                   type=str,
-                                   help='Iridium text message')
-    def put(self):
-        message = request.form['data']
-        parsed = parser.parse_message(message)
-        if parsed != 0:
-            # Add the coordinates to our local coordinates file
-            with open(r'/data/coordinates.csv', 'a') as f:
-                writer = csv.writer(f)
-                writer.writerow(parsed)
-            return 'OK'
-        else:
-            return 'FAIL'
 
-api.add_resource(coordinateAPI, '/api/coordinates/v1.0/')
+@app.route("/api/coordinates/v1.0/", methods=['POST'])
+def post():
+    message = request.form['Body']
+    parsed = parser.parse_message(message)
+    resp = MessagingResponse()
+    if parsed != 0:
+        #Add the coordinates to our local coordinates file
+        with open(r'/data/coordinates.csv', 'a') as f:
+            writer = csv.writer(f)
+            writer.writerow(parsed)
+        return str(resp), 200
+    else:
+        return str(resp), 500
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=False)
