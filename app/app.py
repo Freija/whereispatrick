@@ -3,6 +3,7 @@ import flask
 import parser
 import csv
 import json
+import os
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
@@ -14,17 +15,20 @@ def load_config(filename):
     with open(filename, 'r') as config:
         return json.load(config)
 
+@app.route('/index.js')
+def index_js():
+    locations = parser.get_all_coordinates()
+    images = parser.get_all_images()
+    return flask.render_template("index.js",
+                                 locations=locations,
+                                 images=images,
+                                 base_url=os.environ['STATIC_URL_BASE'])
+
 
 @app.route('/')
 def index():
-    locations = parser.get_all_coordinates()
-    images = parser.get_all_images()
-    return flask.render_template(
-                                "index.html",
-                                ACCESS_KEY = load_config('/config/config.json')['GOOGLE_MAP_KEY'],
-                                locations = locations,
-                                images = images
-                                )
+    return flask.render_template("index.html",
+                                 ACCESS_KEY=load_config('/config/config.json')['GOOGLE_MAP_KEY'])
 
 
 @app.route("/api/coordinates/v1.0/", methods=['POST'])
