@@ -1,6 +1,3 @@
-(function () {
-    'use strict';
-
     function initMap() {
         var markers = {{locations|safe}};
         var centerpoint = new google.maps.LatLng(parseFloat(markers[markers.length -1][0]), parseFloat(markers[markers.length -1][1]));
@@ -68,5 +65,3 @@
       })(image, i));
       };
     }
-
-}());
