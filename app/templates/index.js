@@ -1,6 +1,3 @@
-(function () {
-    'use strict';
-
     function initMap() {
         var markers = {{locations|safe}};
         var centerpoint = new google.maps.LatLng(parseFloat(markers[markers.length -1][0]), parseFloat(markers[markers.length -1][1]));
@@ -46,27 +43,27 @@
     var image_markers = {{images|safe}}
     var image;
     for( i = 0; i < image_markers.length; i++ ) {
-      var position = new google.maps.LatLng(parseFloat(image_markers[i][1]), parseFloat(image_markers[i][2]));
-      image = new google.maps.Marker({
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            strokeWeight: 2,
-            fillOpacity: 1,
-            strokeColor: '#000000',
-            fillColor: '#FFFFFF',
-            scale: 2,
-          },
-          position: position,
-          map: map
-        });
-        google.maps.event.addListener(image, 'click', (function(image, i) {
-        return function() {
-          //infowindow.setContent("Date: " + image_markers[i][4]+ " \nAltitude: " +  image_markers[i][3] + "m" );
-          infowindow.setContent('<IMG BORDER="0" STYLE="width:100%" SRC="{{base_url|safe}}/images/' + image_markers[i][0] + '">' + image_markers[i][4]);
-          infowindow.open(map, image);
-        }
-      })(image, i));
+      if( image_markers[i][0] == 1 ) {
+        var position = new google.maps.LatLng(parseFloat(image_markers[i][2]), parseFloat(image_markers[i][3]));
+        image = new google.maps.Marker({
+          icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              strokeWeight: 2,
+              fillOpacity: 1,
+              strokeColor: '#000000',
+              fillColor: '#FFFFFF',
+              scale: 2,
+            },
+            position: position,
+            map: map
+          });
+          google.maps.event.addListener(image, 'click', (function(image, i) {
+          return function() {
+            //infowindow.setContent("Date: " + image_markers[i][4]+ " \nAltitude: " +  image_markers[i][3] + "m" );
+            infowindow.setContent('<IMG BORDER="0" STYLE="width:100%" SRC="{{base_url|safe}}/images/' + image_markers[i][1] + '">' + image_markers[i][5]);
+            infowindow.open(map, image);
+          }
+        })(image, i));
       };
+    };
     }
-
-}());
