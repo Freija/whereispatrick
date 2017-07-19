@@ -6,7 +6,9 @@
           center: centerpoint,
           mapTypeId: google.maps.MapTypeId.ROADMAP
         });
-        var infowindow = new google.maps.InfoWindow();
+        var infowindow = new google.maps.InfoWindow({
+           maxWidth: 400
+        });
         // Add the Iridium Markers
         var marker, i;
         for( i = 0; i < markers.length; i++ ) {
