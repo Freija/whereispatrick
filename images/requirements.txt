@@ -1,0 +1,3 @@
+bpython
+google-api-python-client
+piexif
