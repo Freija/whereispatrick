@@ -183,7 +183,6 @@ def get_pictures():
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('drive', 'v3', http=http)
-
     # Grab the current list of images
     local_images = get_images_list()
     # Make a set of the image names that were already processed.
@@ -194,12 +193,13 @@ def get_pictures():
         # check the file parents to make sure you are looking in the right
         # directory. Not needed in my case.
         if item['name'].endswith('.jpg'):
-            print('{0} ({1})'.format(item['name'], item['id']))
             # Is this an image we need to download?
             if item['name'] in local_image_names_set:
-                print('Already processed')
                 continue
             # New picture! Time to download and process.
+            print('{0} --> {1} ({2})'.format(datetime.now(),
+                                             item['name'],
+                                             item['id']))
             request = service.files().get_media(fileId=item['id'])
             filehandle = io.FileIO(item['name'], 'wb')
             downloader = MediaIoBaseDownload(filehandle, request)
