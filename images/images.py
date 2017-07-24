@@ -3,12 +3,14 @@
 
 from __future__ import print_function
 import os
+import glob
 import io
 import csv
 import shutil
 from datetime import datetime
 from time import sleep
 
+from PIL import Image
 import httplib2
 import piexif
 from apiclient import discovery
@@ -175,6 +177,46 @@ def list_files(service):
             break
 
 
+def jpg_to_png_thumbnail(dimension, image_name):
+    ''' Helper function that return a square png thumbnail of the provided
+    jpg image and dimension.
+    '''
+    size = (dimension, dimension)
+    image = Image.open(image_name)
+    image.thumbnail(size, Image.ANTIALIAS)
+    background = Image.new('RGBA', size, (255, 255, 255, 0))
+    background.paste(image, (int((size[0] - image.size[0]) / 2),
+                             int((size[1] - image.size[1]) / 2)))
+    new_image = image_name.replace('.jpg', '.png')
+    background.save(new_image)
+    return new_image
+
+
+def process_all_jpgs():
+    ''' Helper function to deal with the older full-sized jpgs. They will all
+    be made into smaller png thumbnails and removed.
+    '''
+    # All we have to do is make a list of the jpg files in the image directory
+    # and process them. FIXME (Freija) implement this!
+    for infile in glob.glob("/data/images/*.jpg"):
+        print(infile)
+        jpg_to_png_thumbnail(500, infile)
+        # Remove the full sized jpg to save space
+        os.remove(infile)
+
+
+def process_image(image_name):
+    ''' function to do some image manipulations
+    '''
+    # We only want to keep smaller sized images to show on the website.
+    new_image = jpg_to_png_thumbnail(500, image_name)
+    # Move the new image to the correct directory.
+    shutil.move(new_image,
+                "/data/images/{0}".format(new_image))
+    # Remove the full sized jpg to save space
+    os.remove(image_name)
+
+
 def get_pictures():
     ''' Get the latest images from the Google Drive. Inspired by the
     Google Drive example code:
@@ -212,18 +254,21 @@ def get_pictures():
             with open(r'/data/images.csv', 'a') as outf:
                 writer = csv.writer(outf)
                 writer.writerow(image_info)
-            # Move the image to the correct directory
-            shutil.move(item['name'],
-                        "/data/images/{0}".format(item['name']))
+            # Process the image
+            process_image(item['name'])
 
 
 def main():
     ''' Check for new pictures on the Google Drive every hour.
     '''
     while True:
-        # Check the Google Drive for available pictures
+        # First, check if there are any full-sized jpgs in the image directory.
+        # If so, make the png thumbnails and remove the full-sized images.
+        process_all_jpgs()
+        # Check the Google Drive for available pictures.
+        # If so, download, grab GPS info and make the thumbnail.
         get_pictures()
-        # Wait one hour to check again
+        # Wait one hour to check again.
         sleep(3600)
 
 

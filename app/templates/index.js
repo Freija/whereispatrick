@@ -62,7 +62,7 @@
           google.maps.event.addListener(image, 'click', (function(image, i) {
           return function() {
             //infowindow.setContent("Date: " + image_markers[i][4]+ " \nAltitude: " +  image_markers[i][3] + "m" );
-            infowindow.setContent('<IMG BORDER="0" STYLE="width:100%" SRC="{{base_url|safe}}/images/' + image_markers[i][1] + '">' + image_markers[i][5]);
+            infowindow.setContent('<IMG BORDER="0" STYLE="width:100%" SRC="{{base_url|safe}}/images/' + image_markers[i][1].replace("jpg", "png") + '">' + image_markers[i][5]);
             infowindow.open(map, image);
           }
         })(image, i));
