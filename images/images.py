@@ -7,6 +7,7 @@ import glob
 import io
 import csv
 import shutil
+import math
 from datetime import datetime
 from time import sleep
 
@@ -88,6 +89,24 @@ def get_sign(code):
     else:
         # wrong location code
         return 0
+
+
+def get_crow_distance(first_coordinates, second_coordinates):
+    ''' This function returns the shortest distance over the Earth's surface
+    between the two supplied coordinates. This is distance as-the-crow-flies.
+    '''
+    lon1, lat1 = first_coordinates
+    lon2, lat2 = second_coordinates
+    earth_radius = 6371000  # in meters
+    phi_1 = math.radians(lat1)
+    phi_2 = math.radians(lat2)
+    delta_phi = math.radians(lat2-lat1)
+    delta_lambda = math.radians(lon2-lon1)
+    a_value = math.sin(delta_phi / 2.0)**2 + \
+        math.cos(phi_1)*math.cos(phi_2) * \
+        math.sin(delta_lambda/2.0)**2
+    c_value = 2 * math.atan2(math.sqrt(a_value), math.sqrt(1 - a_value))
+    return earth_radius * c_value  # distance in meters
 
 
 def deg_min_sec_todeg(degs, mins, secs, sign_code):
