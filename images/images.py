@@ -1,5 +1,11 @@
-'''Grabbing photos from Google Drive
-# Freija <freija@gmail.com>'''
+'''
+Freija <freija@gmail.com>, 2017
+Utilities for:
+    - grabbing photos from Google Drive
+    - retrieving their coordinates from the EXIF info
+    - making thumbnails
+    - finding clusters in the coordinates and group photos by cluster
+'''
 
 from __future__ import print_function
 import os
@@ -11,6 +17,10 @@ import math
 from datetime import datetime
 from time import sleep
 
+# External imports
+import pandas as pd
+import numpy as np
+from sklearn.cluster import DBSCAN
 from PIL import Image
 import httplib2
 import piexif
@@ -29,7 +39,7 @@ except ImportError:
     CLFLAGS = None
 
 # If modifying these scopes, delete your previously saved credentials
-# at ~/.credentials/drive-python-quickstart.json
+# so that new credentials can be created.
 SCOPES = 'https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'whereispatrick'
@@ -39,10 +49,13 @@ def get_credentials():
     """Gets valid user credentials from storage.
 
     If nothing has been stored, or if the stored credentials are invalid,
-    the OAuth2 flow is completed to obtain the new credentials.
-
+    the OAuth2 flow is completed to obtain the new credentials. Note that
+    you will need to specify the command-line option since the browser will
+    not be launched from the Docker.
+    Arguments:
+        None
     Returns:
-        Credentials, the obtained credential.
+        credentials: the obtained credential.
     """
     home_dir = os.path.expanduser('.')
     credential_dir = os.path.join(home_dir, 'credentials')
@@ -65,10 +78,12 @@ def get_credentials():
 
 
 def get_images_list():
-    ''' This function will retrieve the meta information
-    of the images from the local csv file.
+    ''' Retrieves the meta information of the images from the local CSV file.
+
     Arguments:
         None
+    Returns:
+        list: a list of the image information for all lines in the image file.
     '''
     result = []
     with open('/data/images.csv', 'r') as infile:
@@ -79,43 +94,33 @@ def get_images_list():
 
 
 def get_sign(code):
-    ''' This function will return the sign corresponding to the supplied
-    code. Input is 'E', 'W', 'N' or 'S'.
+    ''' Returns the sign corresponding to the supplied code.
+
+    Arguments:
+        One of the following strings: 'E', 'W', 'N' or 'S' for Eastern,
+        Western, Northern or Southern hemisphere.
+    Returns:
+        int: -1 for W and S, 1 for E and N, 0 for all other situations.
     '''
     if code == 'W' or code == 'S':
         return -1
     elif code == 'E' or code == 'N':
         return 1
     else:
-        # wrong location code
+        # Wrong location code.
         return 0
 
 
-def get_crow_distance(first_coordinates, second_coordinates):
-    ''' This function returns the shortest distance over the Earth's surface
-    between the two supplied coordinates. This is distance as-the-crow-flies.
-    '''
-    lon1, lat1 = first_coordinates
-    lon2, lat2 = second_coordinates
-    earth_radius = 6371000  # in meters
-    phi_1 = math.radians(lat1)
-    phi_2 = math.radians(lat2)
-    delta_phi = math.radians(lat2-lat1)
-    delta_lambda = math.radians(lon2-lon1)
-    a_value = math.sin(delta_phi / 2.0)**2 + \
-        math.cos(phi_1)*math.cos(phi_2) * \
-        math.sin(delta_lambda/2.0)**2
-    c_value = 2 * math.atan2(math.sqrt(a_value), math.sqrt(1 - a_value))
-    return earth_radius * c_value  # distance in meters
-
-
 def deg_min_sec_todeg(degs, mins, secs, sign_code):
-    ''' This function will return degrees from degrees, minutes, seconds.
+    ''' Returns degrees from degrees, minutes, seconds.
+
     Arguments:
-        Three tuples: (degrees, denom), (min, denom), (sec, denom) of location
-        One string: sign_code can be W, E, S or N
+        tuples: (degrees, denom), (min, denom), (sec, denom) of location.
+        string: sign_code can be W, E, S or N.
+    Returns:
+        float: the degrees corresponding to these coordinates.
     '''
-    # Keep track if we have negative degrees
+    # Keep track if we have negative degrees.
     sign = get_sign(sign_code)
     if sign == 0:
         return 0
@@ -127,7 +132,9 @@ def deg_min_sec_todeg(degs, mins, secs, sign_code):
 
 
 def get_image_gps_info(image):
-    '''The piece of info we want is in the GPS section of the exif. This can
+    ''' Returns the GPS information found in the EXIF of the image.
+
+    The piece of info we want is in the GPS section of the EXIF. This can
     be different for different camera models.
     In my case, this is the format of that info (example numbers):
        {
@@ -142,6 +149,15 @@ def get_image_gps_info(image):
         27: some crazy stuff,                     undefined data (?)
         29: '2017:07:12'                          date
         }
+    Arguments:
+        string: name of the image for which to extract the EXIF information.
+    Returns:
+        int: 1 (use this image) or 0 (do not use this image).
+        string: name of the image.
+        float: latitude in degrees.
+        float: longitude in degrees.
+        float: altitude in unit of the phone setting.
+        datetime: date_and_time in the phone setting (not always local time).
     '''
     exif = piexif.load(image)
     # Make sure that there is in fact GPS information available.
@@ -159,8 +175,8 @@ def get_image_gps_info(image):
                                       exif['GPS'][4][2],  # seconds
                                       exif['GPS'][3])     # hemisphere
         if latitude == 0 or longitude == 0:
-            return 0, image, 0, 0, 0, 0  # Something went wrong
-        # Also get the altitude
+            return 0, image, 0, 0, 0, 0  # Something went wrong.
+        # Also get the altitude.
         altitude = exif['GPS'][6][0]/exif['GPS'][6][1]
         # Now get the time and put in datetime format.
         # You probably want to check the time zone. For these
@@ -175,13 +191,18 @@ def get_image_gps_info(image):
     else:
         # No GPS coordinates available. We still want an entry to indicate
         # that this picture was processed. This will prevent duplicate GD
-        # downloads.
+        # downloads. The first 0 indicates that this photo should not be
+        # displayed on the map.
         return 0, image, 0, 0, 0, 0
 
 
 def list_files(service):
     ''' Generator to yield the GD files.
     From https://gist.github.com/revolunet/9507070
+    Arguments:
+        service: the GD API service handler.
+    Yields:
+        dict:
     '''
     page_token = None
     while True:
@@ -197,8 +218,14 @@ def list_files(service):
 
 
 def jpg_to_png_thumbnail(dimension, image_name):
-    ''' Helper function that return a square png thumbnail of the provided
+    ''' Creates and saves a square png thumbnail of the provided
     jpg image and dimension.
+
+    Arguments:
+        int: dimension of thumbnail in pixels.
+        string: name of the image.
+    Returns:
+        string: name of the new image.
     '''
     size = (dimension, dimension)
     image = Image.open(image_name)
@@ -212,15 +239,22 @@ def jpg_to_png_thumbnail(dimension, image_name):
 
 
 def process_all_jpgs():
-    ''' Helper function to deal with the older full-sized jpgs. They will all
-    be made into smaller png thumbnails and removed.
+    ''' Processes all local full-sized jpgs.
+
+    All local full-sized jpgs will be made into smaller png thumbnails and
+    removed. This is a way to make sure that we do not have any full-sized
+    photos taking up space on the server.
+
+    Arguments:
+        None
+    Returns:
+        None
     '''
     # All we have to do is make a list of the jpg files in the image directory
-    # and process them. FIXME (Freija) implement this!
+    # and process them.
     for infile in glob.glob("/data/images/*.jpg"):
-        print(infile)
         jpg_to_png_thumbnail(500, infile)
-        # Remove the full sized jpg to save space
+        # Remove the full sized jpg to save space.
         os.remove(infile)
 
 
@@ -237,9 +271,14 @@ def process_image(image_name):
 
 
 def get_pictures():
-    ''' Get the latest images from the Google Drive. Inspired by the
-    Google Drive example code:
+    ''' Gets the latest images from the Google Drive.
+
+    Inspired by the Google Drive example code:
     (https://developers.google.com/drive/v3/web/quickstart/python).
+    Arguments:
+        None
+    Returns:
+        None
     '''
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
@@ -248,7 +287,6 @@ def get_pictures():
     local_images = get_images_list()
     # Make a set of the image names that were already processed.
     local_image_names_set = set([image_info[1] for image_info in local_images])
-
     for item in list_files(service):
         # Only process jpg files. If there are multiple directories, you can
         # check the file parents to make sure you are looking in the right
@@ -256,7 +294,7 @@ def get_pictures():
         if item['name'].endswith('.jpg'):
             # Is this an image we need to download?
             if item['name'] in local_image_names_set:
-                continue
+                continue  # No, skip it.
             # New picture! Time to download and process.
             print('{0} --> {1} ({2})'.format(datetime.now(),
                                              item['name'],
@@ -267,28 +305,59 @@ def get_pictures():
             done = False
             while done is False:
                 _, done = downloader.next_chunk()
-            # We have a new image, save the information to the CSV file
+            # We have a new image, save the information to the CSV file.
             image_info = get_image_gps_info(item['name'])
-            # Add the coordinates to our local coordinates file
+            # Add the coordinates to our local coordinates file.
             with open(r'/data/images.csv', 'a') as outf:
                 writer = csv.writer(outf)
                 writer.writerow(image_info)
-            # Process the image
+            # Process the image.
             process_image(item['name'])
+
+
+def clustering():
+    ''' Finds clusters in the coordinates of the photos.
+
+    This will allow the bunching photos that have been taken close together.
+    Inspired by the following blog post:
+    http://geoffboeing.com/2014/08/clustering-to-reduce-spatial-data-set-size/
+    Arguments:
+        None
+    Returns:
+        FIXME(Freija): complete this when function is done.
+    '''
+    # Get the coordinates from the CSV file
+    my_df = pd.read_csv('/data/images.csv', header=None)
+    coords = my_df.as_matrix(columns=[2, 3])
+    # Set up the DBSCAN algorithm from scikit-learn. See
+    # http://scikit-learn.org/
+    m_per_radian = 6371008.8
+    epsilon = 100 / m_per_radian
+    # Set the mon_samples to 1: this is the minimum number of samples per
+    # cluster. In our case, one photo can be a cluster and should be displayed.
+    my_dbscan = DBSCAN(eps=epsilon, min_samples=1,
+                       algorithm='ball_tree',
+                       metric='haversine').fit(np.radians(coords))
+    # Each photo is now labeled with a cluster-number.
+    cluster_labels = my_dbscan.labels_
+    num_clusters = len(set(cluster_labels))
+    clusters = pd.Series([coords[cluster_labels == n] for n in range(num_clusters)])
+    print('Number of clusters: {}'.format(num_clusters))
 
 
 def main():
     ''' Check for new pictures on the Google Drive every hour.
     '''
-    while True:
+    clustering()
+    #while True:
         # First, check if there are any full-sized jpgs in the image directory.
         # If so, make the png thumbnails and remove the full-sized images.
-        process_all_jpgs()
+        #process_all_jpgs()
         # Check the Google Drive for available pictures.
         # If so, download, grab GPS info and make the thumbnail.
-        get_pictures()
+        #get_pictures()
         # Wait one hour to check again.
-        sleep(3600)
+        #sleep(3600)
 
 
 if __name__ == '__main__':
