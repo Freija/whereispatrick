@@ -15,13 +15,16 @@ def load_config(filename):
     with open(filename, 'r') as config:
         return json.load(config)
 
+
 @app.route('/index.js')
 def index_js():
     locations = parser.get_all_coordinates()
     images = parser.get_all_images()
+    clusters = parser.get_all_clusters()
     return flask.render_template("index.js",
                                  locations=locations,
                                  images=images,
+                                 clusters=clusters,
                                  base_url=os.environ['STATIC_URL_BASE'])
 
 
@@ -37,7 +40,7 @@ def post():
     parsed = parser.parse_message(message)
     resp = MessagingResponse()
     if parsed != 0:
-        #Add the coordinates to our local coordinates file
+        # Add the coordinates to our local coordinates file
         with open(r'/data/coordinates.csv', 'a') as f:
             writer = csv.writer(f)
             writer.writerow(parsed)

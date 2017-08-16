@@ -315,6 +315,32 @@ def get_pictures():
             process_image(item['name'])
 
 
+def get_cluster_center(cluster):
+    ''' Finds center of cluster.
+
+    Arguments:
+        np.array: the coordinates in degrees of the cluster
+    Returns:
+        tuple: the coordinates (lat, lon) of the cluster center.
+    '''
+    x_coord = 0.0
+    y_coord = 0.0
+    z_coord = 0.0
+    for lat, lon in cluster:
+        lat = float(lat * math.pi/180.0)  # convert to radians
+        lon = float(lon * math.pi/180.0)  # convert to radians
+        x_coord += math.cos(lat) * math.cos(lon)
+        y_coord += math.cos(lat) * math.sin(lon)
+        z_coord += math.sin(lat)
+    x_coord = float(x_coord / len(cluster))
+    y_coord = float(y_coord / len(cluster))
+    z_coord = float(z_coord / len(cluster))
+    center_lat = math.atan2(z_coord,
+                            math.sqrt(x_coord * x_coord + y_coord * y_coord))
+    center_lon = math.atan2(y_coord, x_coord)
+    return (center_lat * 180.0/math.pi, center_lon * 180.0/math.pi)
+
+
 def clustering():
     ''' Finds clusters in the coordinates of the photos.
 
@@ -329,6 +355,7 @@ def clustering():
     # Get the coordinates from the CSV file
     my_df = pd.read_csv('/data/images.csv', header=None)
     coords = my_df.as_matrix(columns=[2, 3])
+    image_info = my_df.as_matrix(columns=[1, 2, 3, 4, 5])
     # Set up the DBSCAN algorithm from scikit-learn. See
     # http://scikit-learn.org/
     m_per_radian = 6371008.8
@@ -341,23 +368,38 @@ def clustering():
     # Each photo is now labeled with a cluster-number.
     cluster_labels = my_dbscan.labels_
     num_clusters = len(set(cluster_labels))
-    clusters = pd.Series([coords[cluster_labels == n] for n in range(num_clusters)])
-    print('Number of clusters: {}'.format(num_clusters))
+    clusters = pd.Series([coords[cluster_labels == n]
+                          for n in range(num_clusters)])
+    # Find the center of each cluster. This is where marker for the
+    # photo cluster should be.
+    images = pd.Series([image_info[cluster_labels == n]
+                        for n in range(num_clusters)])
+    with open(r'/data/image_clusters.csv', 'w') as outf:
+        for index, cluster in enumerate(clusters):
+            if index == 0:
+                continue
+            # index will also be the cluster number.
+            center = get_cluster_center(cluster)
+            cluster_info = index, list(center), images[index].tolist()
+            writer = csv.writer(outf)
+            writer.writerow(cluster_info)
 
 
 def main():
-    ''' Check for new pictures on the Google Drive every hour.
+    ''' Check for new pictures on the Google Drive every hour and extract the
+    clustering.
     '''
-    clustering()
-    #while True:
+    while True:
         # First, check if there are any full-sized jpgs in the image directory.
         # If so, make the png thumbnails and remove the full-sized images.
-        #process_all_jpgs()
+        process_all_jpgs()
         # Check the Google Drive for available pictures.
         # If so, download, grab GPS info and make the thumbnail.
-        #get_pictures()
+        get_pictures()
+        # Re-run the clustering for the photos
+        clustering()
         # Wait one hour to check again.
-        #sleep(3600)
+        sleep(3600)
 
 
 if __name__ == '__main__':
