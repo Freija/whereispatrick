@@ -3,8 +3,6 @@ services:
   app:
     build: app
     image: "freija/whereispatrick"
-    ports:
-     - "5000:5000"
     volumes:
      - "./data:/data"
      - "./config:/config"
@@ -12,8 +10,6 @@ services:
      - "STATIC_URL_BASE=http://localhost:8000"
   static:
     image: "nginx:alpine"
-    ports:
-      - "8000:80"
     volumes:
       - "./data:/usr/share/nginx/html:ro"
   images:

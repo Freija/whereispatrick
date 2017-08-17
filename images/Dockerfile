@@ -1,19 +1,27 @@
-FROM python:2.7-alpine
+FROM ubuntu
 
 # we need this to install bpython for test
-RUN apk add --no-cache build-base
-# these are the pillow dependencies
-RUN apk add --no-cache zlib-dev  \
-                       jpeg-dev \
-                       freetype-dev \
-                       lcms2-dev \
-                       openjpeg-dev \
-                       tiff-dev \
-                       tk-dev \
-                       tcl-dev \
-                       harfbuzz-dev \
-                       fribidi-dev
+RUN apt-get update
 
+#Install python basics
+RUN apt-get -y install \
+	build-essential \
+	python-dev \
+	python-setuptools \
+	python-pip
+
+
+#Install scikit-learn dependancies
+RUN apt-get -y install \
+          python-numpy \
+          python-scipy \
+          python-pandas \
+          libatlas-dev \
+          libatlas3-base
+
+#Install scikit-learn
+RUN apt-get -y install python-sklearn
+RUN pip install --upgrade pip
 COPY requirements.txt /
 RUN pip install -r /requirements.txt
 
