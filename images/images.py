@@ -341,16 +341,16 @@ def get_cluster_center(cluster):
     return (center_lat * 180.0/math.pi, center_lon * 180.0/math.pi)
 
 
-def clustering():
+def clustering(cluster_radius):
     ''' Finds clusters in the coordinates of the photos.
 
     This will allow the bunching photos that have been taken close together.
     Inspired by the following blog post:
     http://geoffboeing.com/2014/08/clustering-to-reduce-spatial-data-set-size/
     Arguments:
-        None
+        float: cluster radius in meters.
     Returns:
-        FIXME(Freija): complete this when function is done.
+        None
     '''
     # Get the coordinates from the CSV file
     my_df = pd.read_csv('/data/images.csv', header=None)
@@ -358,8 +358,7 @@ def clustering():
     image_info = my_df.as_matrix(columns=[1, 2, 3, 4, 5])
     # Set up the DBSCAN algorithm from scikit-learn. See
     # http://scikit-learn.org/
-    m_per_radian = 6371008.8
-    epsilon = 100 / m_per_radian
+    epsilon = cluster_radius / 6371008.8  # Denominator is meters per Earth radian
     # Set the mon_samples to 1: this is the minimum number of samples per
     # cluster. In our case, one photo can be a cluster and should be displayed.
     my_dbscan = DBSCAN(eps=epsilon, min_samples=1,
@@ -397,7 +396,7 @@ def main():
         # If so, download, grab GPS info and make the thumbnail.
         get_pictures()
         # Re-run the clustering for the photos
-        clustering()
+        clustering(100.0)  # The argument is the cluster radius.
         # Wait one hour to check again.
         sleep(3600)
 
