@@ -358,7 +358,7 @@ def clustering(cluster_radius):
     image_info = my_df.as_matrix(columns=[1, 2, 3, 4, 5])
     # Set up the DBSCAN algorithm from scikit-learn. See
     # http://scikit-learn.org/
-    epsilon = cluster_radius / 6371008.8  # Denominator is meters per Earth radian
+    epsilon = cluster_radius / 6371008.8  # Denominator is m per Earth radian
     # Set the mon_samples to 1: this is the minimum number of samples per
     # cluster. In our case, one photo can be a cluster and should be displayed.
     my_dbscan = DBSCAN(eps=epsilon, min_samples=1,
@@ -373,13 +373,24 @@ def clustering(cluster_radius):
     # photo cluster should be.
     images = pd.Series([image_info[cluster_labels == n]
                         for n in range(num_clusters)])
+    # Time to deal with duplicate images. Duplicate images can occur from
+    # testing and not cleaning up afterwards! Just brute-force for now.
+    images_list = []
+    for index, item in enumerate(images):
+        local_image_list = []
+        images_list.append([])
+        for _, sub_item in enumerate(item):
+            if sub_item[0] in local_image_list:
+                continue
+            images_list[index].append(sub_item.tolist())
+            local_image_list.append(sub_item[0])
     with open(r'/data/image_clusters.csv', 'w') as outf:
         for index, cluster in enumerate(clusters):
             if index == 0:
-                continue
+                continue  # These are all the images without coordinates
             # index will also be the cluster number.
             center = get_cluster_center(cluster)
-            cluster_info = index, list(center), images[index].tolist()
+            cluster_info = index, list(center), images_list[index]
             writer = csv.writer(outf)
             writer.writerow(cluster_info)
 
