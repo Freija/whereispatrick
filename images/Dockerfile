@@ -28,4 +28,4 @@ RUN pip install -r /requirements.txt
 WORKDIR /images
 COPY images.py client_secret.json ./
 COPY credentials ./credentials
-ENTRYPOINT ["python", "images.py"]
+ENTRYPOINT ["python", "images.py", "--noauth_local_webserver"]
