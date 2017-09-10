@@ -1,3 +1,9 @@
+# Some app-specific stuff
+images/credentials/
+config/
+data/
+client_secret.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
