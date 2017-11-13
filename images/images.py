@@ -218,23 +218,22 @@ def list_files(service):
 
 
 def jpg_to_png_thumbnail(dimension, image_name):
-    ''' Creates and saves a square png thumbnail of the provided
-    jpg image and dimension.
+    ''' Creates and saves a png thumbnail of the provided
+    jpg image and width dimension.
 
     Arguments:
-        int: dimension of thumbnail in pixels.
+        int:width dimension of thumbnail in pixels.
         string: name of the image.
     Returns:
         string: name of the new image.
     '''
-    size = (dimension, dimension)
+
     image = Image.open(image_name)
-    image.thumbnail(size, Image.ANTIALIAS)
-    background = Image.new('RGBA', size, (255, 255, 255, 0))
-    background.paste(image, (int((size[0] - image.size[0]) / 2),
-                             int((size[1] - image.size[1]) / 2)))
+    wpercent = (dimension/float(image.size[0]))
+    hsize = int((float(image.size[1])*float(wpercent)))
+    img = image.resize((dimension, hsize), Image.ANTIALIAS)
     new_image = image_name.replace('.jpg', '.png')
-    background.save(new_image)
+    img.save(new_image)
     return new_image
 
 
@@ -258,6 +257,22 @@ def process_all_jpgs():
         os.remove(infile)
 
 
+def process_all_png():
+    ''' Processes all pngs.
+
+    Crop the old PNGs.
+
+    Arguments:
+        None
+    Returns:
+        None
+    '''
+    # All we have to do is make a list of png files in the image directory
+    # and process them.
+    for infile in glob.glob("/data/images/*.png"):
+        process_old_png(infile)
+
+
 def process_image(image_name):
     ''' function to do some image manipulations
     '''
@@ -268,6 +283,25 @@ def process_image(image_name):
                 "/data/images/{0}".format(new_image))
     # Remove the full sized jpg to save space
     os.remove(image_name)
+
+
+def process_old_png(image_name):
+    ''' Function to reprocess old png files to remove the
+    whitespace.
+    '''
+    image = Image.open(image_name)
+    image.load()
+    imagesize = image.size
+    if imagesize != (500, 500):
+        return -1
+    imagecomponents = image.split()
+    rgbimage = Image.new("RGB", imagesize, (0, 0, 0))
+    rgbimage.paste(image, mask=imagecomponents[3])
+    croppedbox = rgbimage.getbbox()
+    cropped = image.crop(croppedbox)
+    # Overwrite the old image
+    cropped.save(image_name)
+    return 0
 
 
 def get_pictures():
@@ -403,6 +437,8 @@ def main():
         # First, check if there are any full-sized jpgs in the image directory.
         # If so, make the png thumbnails and remove the full-sized images.
         process_all_jpgs()
+        # Reprocess the old pngs, uncomment if needed
+        # process_all_png()
         # Check the Google Drive for available pictures.
         # If so, download, grab GPS info and make the thumbnail.
         get_pictures()
